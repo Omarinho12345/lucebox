@@ -10,7 +10,16 @@ set -euo pipefail
 
 name=$1 at_once=$2 server=$3 model=$4
 shift 4
-port=${SERVE_SMOKE_PORT:-8098}
+if [[ -n ${SERVE_SMOKE_PORT:-} ]]; then
+  port=$SERVE_SMOKE_PORT
+else
+  # Pick an unused loopback port so a leftover listener on 8098 on lucebox3
+  # cannot fail the smoke run at bind().
+  port=$(python3 -c 'import socket
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.bind(("127.0.0.1", 0))
+    print(s.getsockname()[1])')
+fi
 log=${RUNNER_TEMP:-/tmp}/serve_smoke_$name.log
 url=http://127.0.0.1:$port
 
